@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#22c55e">
+    <title>Sổ Chi Tiêu</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="container">
+            <h1 class="app-title">Sổ Chi Tiêu</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="card" aria-labelledby="form-title">
+            <div class="card-header">
+                <h2 id="form-title" class="card-title">Thêm khoản chi</h2>
+            </div>
+            <form id="expense-form" novalidate>
+                <div class="form-row">
+                    <label class="form-field">
+                        <span class="form-label">Số tiền (VNĐ)</span>
+                        <input type="number" id="amount" name="amount" inputmode="numeric" min="0" step="1000" placeholder="VD: 50000" required>
+                        <span class="form-error" id="error-amount"></span>
+                    </label>
+                </div>
+
+                <div class="form-row form-row-2">
+                    <label class="form-field">
+                        <span class="form-label">Danh mục</span>
+                        <select id="category" name="category" required>
+                            <option value="">-- Chọn danh mục --</option>
+                            <option value="Ăn uống">Ăn uống</option>
+                            <option value="Đi lại">Đi lại</option>
+                            <option value="Mua sắm">Mua sắm</option>
+                            <option value="Hóa đơn">Hóa đơn</option>
+                            <option value="Giải trí">Giải trí</option>
+                            <option value="Khác">Khác</option>
+                        </select>
+                        <span class="form-error" id="error-category"></span>
+                    </label>
+
+                    <label class="form-field">
+                        <span class="form-label">Ngày</span>
+                        <input type="date" id="date" name="date" required>
+                        <span class="form-error" id="error-date"></span>
+                    </label>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-field">
+                        <span class="form-label">Ghi chú (tùy chọn)</span>
+                        <input type="text" id="note" name="note" placeholder="VD: Ăn trưa" maxlength="80">
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submit-btn">Thêm khoản chi</button>
+                    <button type="button" class="btn btn-ghost" id="cancel-edit-btn" hidden>Hủy sửa</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="card" aria-labelledby="stats-title">
+            <div class="card-header card-header-split">
+                <h2 id="stats-title" class="card-title">Thống kê</h2>
+                <div class="stats-header-actions">
+                    <label class="form-field filter-field stats-month">
+                        <span class="form-label">Chọn tháng</span>
+                        <input type="month" id="stats-month">
+                    </label>
+                    <button type="button" class="btn btn-ghost btn-small" id="export-excel">Xuất Excel</button>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stats-summary">
+                    <p class="stats-label">Tổng chi tiêu trong tháng</p>
+                    <p class="stats-total" id="month-total">0 ₫</p>
+                </div>
+                <div class="stats-chart-wrap">
+                    <canvas id="category-pie" aria-label="Biểu đồ tròn chi tiêu theo danh mục" role="img"></canvas>
+                    <p id="chart-empty" class="chart-empty" hidden>Chưa có dữ liệu trong tháng này</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="list-title">
+            <div class="card-header card-header-split">
+                <h2 id="list-title" class="card-title">Danh sách khoản chi</h2>
+                <div class="summary">
+                    <span class="summary-label">Tổng:</span>
+                    <span class="summary-value" id="total-amount">0 ₫</span>
+                </div>
+            </div>
+
+            <div class="filters">
+                <label class="form-field filter-field">
+                    <span class="form-label">Lọc theo danh mục</span>
+                    <select id="filter-category">
+                        <option value="all">Tất cả</option>
+                        <option value="Ăn uống">Ăn uống</option>
+                        <option value="Đi lại">Đi lại</option>
+                        <option value="Mua sắm">Mua sắm</option>
+                        <option value="Hóa đơn">Hóa đơn</option>
+                        <option value="Giải trí">Giải trí</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                </label>
+                <label class="form-field filter-field">
+                    <span class="form-label">Lọc theo tháng</span>
+                    <input type="month" id="filter-month">
+                </label>
+                <button type="button" class="btn btn-ghost btn-small" id="clear-filters">Xóa bộ lọc</button>
+            </div>
+
+            <div id="empty-state" class="empty-state" hidden>
+                <p class="empty-state-text">Chưa có khoản chi nào.</p>
+            </div>
+
+            <ul id="expense-list" class="expense-list" aria-live="polite"></ul>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
