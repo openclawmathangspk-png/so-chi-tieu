@@ -571,7 +571,7 @@ async function syncWithGoogleSheets() {
     };
 
     try {
-        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
         const res = await fetch(proxyUrl, {
             method: "POST",
             headers: {
