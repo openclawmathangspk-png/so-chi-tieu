@@ -176,7 +176,12 @@ function doPost(e) {
     const secret = getSecret();
     let body = {};
     if (e && e.postData && e.postData.contents) {
-      body = JSON.parse(e.postData.contents);
+      const c = e.postData.contents;
+      try {
+        body = JSON.parse(c);
+      } catch (ex) {
+        body = {};
+      }
     }
     if (!body || typeof body !== 'object') {
       body = {};
