@@ -581,6 +581,28 @@ async function syncWithGoogleSheets() {
 
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
+            const m = text.match(/\{"ok"\s*:.*"data"\s*:\s*\[.*\]\}/);
+            if (m) {
+                try {
+                    const data = JSON.parse(m[0]);
+                    if (data.ok === true && Array.isArray(data.data)) {
+                        const mergedFromServer = data.data.map((item) => ({
+                            id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
+                            amount: Number(item.amount) || 0,
+                            category: item.category || "",
+                            date: item.date || "",
+                            note: item.note || "",
+                            updatedAt: item.updatedAt || new Date().toISOString(),
+                            deleted: item.deleted === true,
+                        }));
+                        expenses = mergedFromServer;
+                        saveExpenses();
+                        render();
+                        setSyncStatus("Đồng bộ thành công", false);
+                        return;
+                    }
+                } catch (e) {}
+            }
             setSyncStatus("Lỗi: Apps Script trả về HTML. Kiểm tra lại URL /exec và quyền triển khai.", true);
             return;
         }
