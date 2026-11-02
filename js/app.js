@@ -584,25 +584,47 @@ async function syncWithGoogleSheets() {
             try {
                 const idx = text.indexOf('{"ok"');
                 if (idx >= 0) {
-                    const tail = text.substring(idx);
-                    const end = tail.indexOf('}</body>');
-                    const jsonLike = end >= 0 ? tail.substring(0, end + 1) : tail;
-                    const data = JSON.parse(jsonLike);
-                    if (data && data.ok === true && Array.isArray(data.data)) {
-                        const mergedFromServer = data.data.map((item) => ({
-                            id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
-                            amount: Number(item.amount) || 0,
-                            category: item.category || "",
-                            date: item.date || "",
-                            note: item.note || "",
-                            updatedAt: item.updatedAt || new Date().toISOString(),
-                            deleted: item.deleted === true,
-                        }));
-                        expenses = mergedFromServer;
-                        saveExpenses();
-                        render();
-                        setSyncStatus("Đồng bộ thành công", false);
-                        return;
+                    const jsonLike = text.substring(idx);
+                    try {
+                        const data = JSON.parse(jsonLike);
+                        if (data && data.ok === true && Array.isArray(data.data)) {
+                            const mergedFromServer = data.data.map((item) => ({
+                                id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
+                                amount: Number(item.amount) || 0,
+                                category: item.category || "",
+                                date: item.date || "",
+                                note: item.note || "",
+                                updatedAt: item.updatedAt || new Date().toISOString(),
+                                deleted: item.deleted === true,
+                            }));
+                            expenses = mergedFromServer;
+                            saveExpenses();
+                            render();
+                            setSyncStatus("Đồng bộ thành công", false);
+                            return;
+                        }
+                    } catch (e2) {}
+                    const end = jsonLike.indexOf('</script>');
+                    if (end > 0) {
+                        try {
+                            const data2 = JSON.parse(jsonLike.substring(0, end));
+                            if (data2 && data2.ok === true && Array.isArray(data2.data)) {
+                                const mergedFromServer = data2.data.map((item) => ({
+                                    id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
+                                    amount: Number(item.amount) || 0,
+                                    category: item.category || "",
+                                    date: item.date || "",
+                                    note: item.note || "",
+                                    updatedAt: item.updatedAt || new Date().toISOString(),
+                                    deleted: item.deleted === true,
+                                }));
+                                expenses = mergedFromServer;
+                                saveExpenses();
+                                render();
+                                setSyncStatus("Đồng bộ thành công", false);
+                                return;
+                            }
+                        } catch (e3) {}
                     }
                 }
             } catch (e) {}
