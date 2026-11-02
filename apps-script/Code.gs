@@ -178,7 +178,21 @@ function doPost(e) {
     const secret = getSecret();
     let body = {};
     if (e && e.postData && e.postData.contents) {
-      body = JSON.parse(e.postData.contents);
+      const c = e.postData.contents;
+      try {
+        body = JSON.parse(c);
+      } catch (ex) {
+        if (c.indexOf('=') >= 0) {
+          const parts = c.split('&');
+          for (var i = 0; i < parts.length; i++) {
+            var kv = parts[i].split('=');
+            if (decodeURIComponent(kv[0]) === 'data') {
+              body = JSON.parse(decodeURIComponent(kv.slice(1).join('=')));
+              break;
+            }
+          }
+        }
+      }
     }
     if (!body || typeof body !== 'object') body = {};
     const provided = body.secret !== undefined && body.secret !== null ? String(body.secret) : '';
