@@ -571,13 +571,28 @@ async function syncWithGoogleSheets() {
     };
 
     try {
-        const res = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "text/plain;charset=utf-8",
-            },
-            body: JSON.stringify(payload),
-        });
+        let res;
+        const bodyStr = JSON.stringify(payload);
+        try {
+            res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: bodyStr,
+            });
+        } catch (e1) {
+            try {
+                res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url), {
+                    method: "POST",
+                    body: bodyStr,
+                });
+            } catch (e2) {
+                res = await fetch("https://corsproxy.io/?" + encodeURIComponent(url), {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: bodyStr,
+                });
+            }
+        }
 
         const text = await res.text();
         if (!res.ok) {
