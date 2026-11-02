@@ -603,11 +603,11 @@ async function syncWithGoogleSheets() {
         try {
             data = JSON.parse(text);
         } catch (e) {
-            setSyncStatus("Lỗi: Không đọc được phản hồi JSON", true);
+            setSyncStatus("Lỗi: Không đọc được JSON. Thử lại sau khi triển khai lại Web App.", true);
             return;
         }
         if (!data || data.ok !== true || !Array.isArray(data.data)) {
-            setSyncStatus("Lỗi: phản hồi không hợp lệ", true);
+            setSyncStatus(data && data.error ? ("Lỗi: " + data.error) : "Lỗi: phản hồi không hợp lệ", true);
             return;
         }
 

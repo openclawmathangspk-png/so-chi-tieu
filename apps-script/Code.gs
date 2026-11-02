@@ -150,28 +150,36 @@ function mergeItems(existing, incoming) {
 }
 
 function doGet(e) {
-  const secret = getSecret();
-  const provided = e && e.parameter ? e.parameter.secret : '';
-  if (!secret || provided !== secret) {
-    return unauthorized();
+  try {
+    const secret = getSecret();
+    const provided = e && e.parameter ? e.parameter.secret : '';
+    if (!secret || provided !== secret) {
+      return jsonResponse({ ok: false, error: 'unauthorized' });
+    }
+    const all = readAllFromSheet();
+    return jsonResponse({ ok: true, data: all });
+  } catch (err) {
+    return jsonResponse({ ok: false, error: String(err) });
   }
-  const all = readAllFromSheet();
-  return jsonResponse({ ok: true, data: all });
 }
 
 function doPost(e) {
-  const secret = getSecret();
-  const body = parseJsonBody(e);
-  const provided = body.secret || (e && e.parameter ? e.parameter.secret : '');
-  if (!secret || provided !== secret) {
-    return unauthorized();
+  try {
+    const secret = getSecret();
+    const body = parseJsonBody(e);
+    const provided = body.secret || (e && e.parameter ? e.parameter.secret : '');
+    if (!secret || provided !== secret) {
+      return jsonResponse({ ok: false, error: 'unauthorized' });
+    }
+    const incoming = Array.isArray(body.items) ? body.items : [];
+    const existing = readAllFromSheet();
+    const merged = mergeItems(existing, incoming);
+    writeAllToSheet(merged);
+    const all = readAllFromSheet();
+    return jsonResponse({ ok: true, data: all });
+  } catch (err) {
+    return jsonResponse({ ok: false, error: String(err) });
   }
-  const incoming = Array.isArray(body.items) ? body.items : [];
-  const existing = readAllFromSheet();
-  const merged = mergeItems(existing, incoming);
-  writeAllToSheet(merged);
-  const all = readAllFromSheet();
-  return jsonResponse({ ok: true, data: all });
 }
 
 function doOptions() {
