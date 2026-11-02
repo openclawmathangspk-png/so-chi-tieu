@@ -172,8 +172,6 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  const output = ContentService.createTextOutput();
-  output.setMimeType(ContentService.MimeType.JSON);
   try {
     const secret = getSecret();
     let body = {};
@@ -185,19 +183,16 @@ function doPost(e) {
     }
     const provided = body.secret !== undefined && body.secret !== null ? String(body.secret) : '';
     if (!secret || provided !== String(secret)) {
-      output.setContent(JSON.stringify({ ok: false, error: 'unauthorized' }));
-      return output;
+      return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'unauthorized' })).setMimeType(ContentService.MimeType.JSON);
     }
     const incoming = Array.isArray(body.items) ? body.items : [];
     const existing = readAllFromSheet();
     const merged = mergeItems(existing, incoming);
     writeAllToSheet(merged);
     const all = readAllFromSheet();
-    output.setContent(JSON.stringify({ ok: true, data: all }));
-    return output;
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, data: all })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    output.setContent(JSON.stringify({ ok: false, error: String(err) }));
-    return output;
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
