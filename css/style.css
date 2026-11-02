@@ -233,6 +233,25 @@ input[type="date"] {
     gap: 10px;
 }
 
+.sync-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 24px 24px;
+}
+
+.sync-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.sync-status {
+    min-height: 20px;
+    color: var(--text-secondary);
+    font-size: 0.98rem;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));

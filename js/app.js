@@ -1,4 +1,6 @@
-const STORAGE_KEY = "so_chi_tieu_expenses";
+const STORAGE_KEY = "so_chi_tieu_items";
+const SYNC_URL_KEY = "so_chi_tieu_sync_url";
+const SYNC_SECRET_KEY = "so_chi_tieu_sync_secret";
 
 const expenseForm = document.getElementById("expense-form");
 const amountInput = document.getElementById("amount");
@@ -23,6 +25,11 @@ const categoryPieCanvas = document.getElementById("category-pie");
 const chartEmptyEl = document.getElementById("chart-empty");
 const exportExcelBtn = document.getElementById("export-excel");
 
+const syncUrlInput = document.getElementById("sync-url");
+const syncSecretInput = document.getElementById("sync-secret");
+const syncBtn = document.getElementById("sync-btn");
+const syncStatusEl = document.getElementById("sync-status");
+
 const errorAmount = document.getElementById("error-amount");
 const errorCategory = document.getElementById("error-category");
 const errorDate = document.getElementById("error-date");
@@ -43,16 +50,64 @@ function formatCurrency(value) {
     return new Intl.NumberFormat("vi-VN").format(number) + " ₫";
 }
 
+function loadSyncSettings() {
+    try {
+        if (syncUrlInput) {
+            syncUrlInput.value = localStorage.getItem(SYNC_URL_KEY) || "";
+        }
+        if (syncSecretInput) {
+            syncSecretInput.value = localStorage.getItem(SYNC_SECRET_KEY) || "";
+        }
+    } catch (error) {
+        console.error("Không thể tải cài đặt đồng bộ", error);
+    }
+}
+
+function saveSyncSettings() {
+    try {
+        if (syncUrlInput) {
+            localStorage.setItem(SYNC_URL_KEY, syncUrlInput.value.trim());
+        }
+        if (syncSecretInput) {
+            localStorage.setItem(SYNC_SECRET_KEY, syncSecretInput.value);
+        }
+    } catch (error) {
+        console.error("Không thể lưu cài đặt đồng bộ", error);
+    }
+}
+
 function loadExpenses() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
+            const legacyRaw = localStorage.getItem("so_chi_tieu_expenses");
+            if (legacyRaw) {
+                const legacyParsed = JSON.parse(legacyRaw);
+                if (Array.isArray(legacyParsed)) {
+                    expenses = legacyParsed.map((item) => ({
+                        ...item,
+                        id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
+                        amount: Number(item.amount) || 0,
+                        updatedAt: item.updatedAt || new Date().toISOString(),
+                        deleted: false,
+                    }));
+                    saveExpenses();
+                    localStorage.removeItem("so_chi_tieu_expenses");
+                    return;
+                }
+            }
             expenses = [];
             return;
         }
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-            expenses = parsed;
+            expenses = parsed.map((item) => ({
+                ...item,
+                id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
+                amount: Number(item.amount) || 0,
+                updatedAt: item.updatedAt || new Date().toISOString(),
+                deleted: item.deleted === true,
+            }));
         } else {
             expenses = [];
         }
@@ -129,10 +184,13 @@ function getFilteredExpenses() {
 
     return expenses
         .filter((item) => {
+            if (item.deleted) {
+                return false;
+            }
             if (categoryFilter !== "all" && item.category !== categoryFilter) {
                 return false;
             }
-            if (monthFilter) {
+            if (monthFilter && item.date) {
                 const itemMonth = item.date.slice(0, 7);
                 if (itemMonth !== monthFilter) {
                     return false;
@@ -142,8 +200,10 @@ function getFilteredExpenses() {
         })
         .sort((a, b) => {
             if (a.date === b.date) {
-                return (b.id || 0) - (a.id || 0);
+                return (Number(b.id) || 0) - (Number(a.id) || 0);
             }
+            if (!a.date) return 1;
+            if (!b.date) return -1;
             return b.date.localeCompare(a.date);
         });
 }
@@ -157,7 +217,7 @@ function renderStats() {
     let monthItems = [];
 
     if (selectedMonth) {
-        monthItems = expenses.filter((item) => item.date && item.date.slice(0, 7) === selectedMonth);
+        monthItems = expenses.filter((item) => !item.deleted && item.date && item.date.slice(0, 7) === selectedMonth);
     } else {
         monthItems = [];
     }
@@ -287,7 +347,7 @@ function render() {
 
         const date = document.createElement("span");
         date.className = "expense-date";
-        date.textContent = item.date.split("-").reverse().join("/");
+        date.textContent = item.date ? item.date.split("-").reverse().join("/") : "";
 
         top.appendChild(category);
         top.appendChild(date);
@@ -345,9 +405,15 @@ function handleDelete(id) {
     if (!confirmed) {
         return;
     }
-    expenses = expenses.filter((item) => item.id !== id);
+    const now = new Date().toISOString();
+    expenses = expenses.map((item) => {
+        if (String(item.id) === String(id)) {
+            return { ...item, deleted: true, updatedAt: now };
+        }
+        return item;
+    });
     saveExpenses();
-    if (editingId === id) {
+    if (editingId !== null && String(editingId) === String(id)) {
         resetForm();
     }
     render();
@@ -363,27 +429,32 @@ expenseForm.addEventListener("submit", (event) => {
     const categoryValue = categorySelect.value;
     const dateValue = dateInput.value;
     const noteValue = noteInput.value.trim();
+    const now = new Date().toISOString();
 
     if (editingId !== null) {
         expenses = expenses.map((item) => {
-            if (item.id === editingId) {
+            if (String(item.id) === String(editingId)) {
                 return {
                     ...item,
                     amount: amountValue,
                     category: categoryValue,
                     date: dateValue,
                     note: noteValue,
+                    updatedAt: now,
+                    deleted: item.deleted === true,
                 };
             }
             return item;
         });
     } else {
         const newExpense = {
-            id: Date.now(),
+            id: Date.now().toString(),
             amount: amountValue,
             category: categoryValue,
             date: dateValue,
             note: noteValue,
+            updatedAt: now,
+            deleted: false,
         };
         expenses.push(newExpense);
     }
@@ -409,10 +480,10 @@ function exportMonthToCsv() {
     }
 
     const monthItems = expenses
-        .filter((item) => item.date && item.date.slice(0, 7) === selectedMonth)
+        .filter((item) => !item.deleted && item.date && item.date.slice(0, 7) === selectedMonth)
         .sort((a, b) => {
             if (a.date === b.date) {
-                return (a.id || 0) - (b.id || 0);
+                return (Number(a.id) || 0) - (Number(b.id) || 0);
             }
             return a.date.localeCompare(b.date);
         });
@@ -458,6 +529,92 @@ function exportMonthToCsv() {
     URL.revokeObjectURL(url);
 }
 
+function setSyncStatus(message, isError) {
+    if (!syncStatusEl) {
+        return;
+    }
+    syncStatusEl.textContent = message || "";
+    syncStatusEl.style.color = isError ? "#f87171" : "#34d399";
+}
+
+async function syncWithGoogleSheets() {
+    saveSyncSettings();
+    const url = syncUrlInput ? syncUrlInput.value.trim() : "";
+    const secret = syncSecretInput ? syncSecretInput.value : "";
+
+    if (!url) {
+        setSyncStatus("Vui lòng nhập URL Web App", true);
+        return;
+    }
+    if (!secret) {
+        setSyncStatus("Vui lòng nhập mã bí mật", true);
+        return;
+    }
+
+    if (syncBtn) {
+        syncBtn.disabled = true;
+        syncBtn.textContent = "Đang đồng bộ...";
+    }
+    setSyncStatus("Đang đồng bộ...", false);
+
+    const payload = {
+        secret: secret,
+        items: expenses.map((item) => ({
+            id: String(item.id),
+            amount: Number(item.amount) || 0,
+            category: item.category || "",
+            date: item.date || "",
+            note: item.note || "",
+            updatedAt: item.updatedAt || new Date().toISOString(),
+            deleted: item.deleted === true,
+        })),
+    };
+
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8",
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            setSyncStatus("Lỗi: không thể kết nối đến Apps Script (" + res.status + ")", true);
+            return;
+        }
+
+        const data = await res.json();
+        if (!data || data.ok !== true || !Array.isArray(data.data)) {
+            setSyncStatus("Lỗi: phản hồi không hợp lệ", true);
+            return;
+        }
+
+        const mergedFromServer = data.data.map((item) => ({
+            id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
+            amount: Number(item.amount) || 0,
+            category: item.category || "",
+            date: item.date || "",
+            note: item.note || "",
+            updatedAt: item.updatedAt || new Date().toISOString(),
+            deleted: item.deleted === true,
+        }));
+
+        expenses = mergedFromServer;
+        saveExpenses();
+        render();
+        setSyncStatus("Đồng bộ thành công", false);
+    } catch (error) {
+        console.error(error);
+        setSyncStatus("Lỗi: " + error.message, true);
+    } finally {
+        if (syncBtn) {
+            syncBtn.disabled = false;
+            syncBtn.textContent = "Đồng bộ";
+        }
+    }
+}
+
 filterCategoryEl.addEventListener("change", render);
 filterMonthEl.addEventListener("change", render);
 if (clearFiltersBtn) {
@@ -476,6 +633,17 @@ if (exportExcelBtn) {
     exportExcelBtn.addEventListener("click", exportMonthToCsv);
 }
 
+if (syncBtn) {
+    syncBtn.addEventListener("click", syncWithGoogleSheets);
+}
+
+if (syncUrlInput) {
+    syncUrlInput.addEventListener("change", saveSyncSettings);
+}
+if (syncSecretInput) {
+    syncSecretInput.addEventListener("change", saveSyncSettings);
+}
+
 function registerServiceWorker() {
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
@@ -488,6 +656,7 @@ function registerServiceWorker() {
 
 function init() {
     loadExpenses();
+    loadSyncSettings();
     dateInput.value = getTodayISO();
     if (statsMonthInput && !statsMonthInput.value) {
         const today = new Date();

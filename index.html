@@ -100,6 +100,26 @@
             </div>
         </section>
 
+        <section class="card" aria-labelledby="sync-title">
+            <div class="card-header">
+                <h2 id="sync-title" class="card-title">Cài đặt đồng bộ</h2>
+            </div>
+            <div class="sync-settings">
+                <label class="form-field">
+                    <span class="form-label">URL Web App (Google Apps Script)</span>
+                    <input type="url" id="sync-url" placeholder="https://script.google.com/macros/s/.../exec">
+                </label>
+                <label class="form-field">
+                    <span class="form-label">Mã bí mật</span>
+                    <input type="password" id="sync-secret" placeholder="Nhập mã bí mật đã đặt trong Script Properties">
+                </label>
+                <div class="sync-actions">
+                    <button type="button" class="btn btn-primary" id="sync-btn">Đồng bộ</button>
+                </div>
+                <p id="sync-status" class="sync-status" aria-live="polite"></p>
+            </div>
+        </section>
+
         <section class="card" aria-labelledby="list-title">
             <div class="card-header card-header-split">
                 <h2 id="list-title" class="card-title">Danh sách khoản chi</h2>
