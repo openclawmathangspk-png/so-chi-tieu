@@ -36,13 +36,21 @@ function unauthorized() {
 
 function parseJsonBody(e) {
   try {
-    if (!e || !e.postData || !e.postData.contents) {
+    if (!e) {
       return {};
     }
-    return JSON.parse(e.postData.contents);
-  } catch (err) {
-    return {};
-  }
+    if (e.postData && e.postData.contents) {
+      const c = e.postData.contents;
+      if (c.indexOf('data=') === 0) {
+        return JSON.parse(decodeURIComponent(c.substring(5)));
+      }
+      return JSON.parse(c);
+    }
+    if (e.parameter && e.parameter.data) {
+      return JSON.parse(e.parameter.data);
+    }
+  } catch (err) {}
+  return {};
 }
 
 function readAllFromSheet() {
@@ -166,12 +174,23 @@ function doGet(e) {
 function doPost(e) {
   try {
     const secret = getSecret();
-    const body = parseJsonBody(e);
-    const provided = body.secret || (e && e.parameter ? e.parameter.secret : '');
-    if (!secret || provided !== secret) {
+    let body = parseJsonBody(e);
+    if ((!body || !body.secret) && e && e.parameter) {
+      body = { secret: e.parameter.secret, items: body.items || e.parameter.items };
+    }
+    if (!body || typeof body !== 'object') {
+      body = {};
+    }
+    const provided = body.secret !== undefined && body.secret !== null ? String(body.secret) : '';
+    if (!secret || provided !== String(secret)) {
       return jsonResponse({ ok: false, error: 'unauthorized' });
     }
-    const incoming = Array.isArray(body.items) ? body.items : [];
+    let incoming = Array.isArray(body.items) ? body.items : [];
+    if (!incoming.length && e && e.parameter && e.parameter.items) {
+      try {
+        incoming = JSON.parse(e.parameter.items);
+      } catch (ex) {}
+    }
     const existing = readAllFromSheet();
     const merged = mergeItems(existing, incoming);
     writeAllToSheet(merged);
