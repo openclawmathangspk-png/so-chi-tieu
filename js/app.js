@@ -576,16 +576,20 @@ async function syncWithGoogleSheets() {
         try {
             res = await fetch(url, {
                 method: "POST",
-                headers: { "Content-Type": "text/plain" },
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: bodyStr,
                 redirect: "follow"
             });
         } catch (e) {
-            res = await fetch(url, {
-                method: "POST",
-                body: bodyStr,
-                redirect: "follow"
-            });
+            try {
+                res = await fetch(url, {
+                    method: "POST",
+                    body: bodyStr,
+                    redirect: "follow"
+                });
+            } catch (e2) {
+                throw e;
+            }
         }
 
         const text = await res.text();
