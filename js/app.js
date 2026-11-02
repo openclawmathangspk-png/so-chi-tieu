@@ -571,7 +571,8 @@ async function syncWithGoogleSheets() {
     };
 
     try {
-        const res = await fetch(url, {
+        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+        const res = await fetch(proxyUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "text/plain;charset=utf-8",
@@ -584,7 +585,7 @@ async function syncWithGoogleSheets() {
         try {
             data = JSON.parse(text);
         } catch (e) {
-            setSyncStatus("Lỗi: Failed to fetch. Cần triển khai Web App Apps Script với 'Thực thi như: Tôi' và 'Ai có quyền truy cập: Bất kỳ ai kể cả người dùng ẩn danh'. Nếu vẫn lỗi, thử mở URL bằng trình duyệt một lần hoặc dùng proxy.", true);
+            setSyncStatus("Lỗi: Không đọc được phản hồi từ Apps Script. Kiểm tra lại URL/mã bí mật.", true);
             return;
         }
         if (!data || data.ok !== true || !Array.isArray(data.data)) {
