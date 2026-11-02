@@ -591,32 +591,28 @@ async function syncWithGoogleSheets() {
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
             try {
-                const m = text.match(/"ok"\s*:\s*(true|false)[^{}]*"data"\s*:\s*\[([^\]]*)\]/);
-                if (m && m[1] === 'true') {
-                    let dataArr = [];
-                    if (m[2].trim()) {
-                        try {
-                            const inner = '[' + m[2] + ']';
-                            dataArr = JSON.parse(inner);
-                        } catch (e2) {}
+                const mAll = text.match(/\{"ok"\s*:\s*(true|false)[\s\S]*?"data"\s*:\s*\[[\s\S]*?\]\}/);
+                if (mAll && mAll[1] === 'true') {
+                    const data = JSON.parse(mAll[0]);
+                    if (Array.isArray(data.data)) {
+                        const mergedFromServer = data.data.map((item) => ({
+                            id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
+                            amount: Number(item.amount) || 0,
+                            category: item.category || "",
+                            date: item.date || "",
+                            note: item.note || "",
+                            updatedAt: item.updatedAt || new Date().toISOString(),
+                            deleted: item.deleted === true,
+                        }));
+                        expenses = mergedFromServer;
+                        saveExpenses();
+                        render();
+                        setSyncStatus("Đồng bộ thành công", false);
+                        return;
                     }
-                    const mergedFromServer = dataArr.map((item) => ({
-                        id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
-                        amount: Number(item.amount) || 0,
-                        category: item.category || "",
-                        date: item.date || "",
-                        note: item.note || "",
-                        updatedAt: item.updatedAt || new Date().toISOString(),
-                        deleted: item.deleted === true,
-                    }));
-                    expenses = mergedFromServer;
-                    saveExpenses();
-                    render();
-                    setSyncStatus("Đồng bộ thành công", false);
-                    return;
                 }
             } catch (e) {}
-            setSyncStatus("Lỗi: Apps Script trả về trang HTML. Hãy triển khai lại Web App: Thực thi như 'Tôi', Ai có quyền truy cập 'Bất kỳ ai kể cả người dùng ẩn danh', và dùng URL /exec mới.", true);
+            setSyncStatus("Lỗi: Apps Script trả về trang HTML. Dùng URL /exec mới sau khi triển khai lại.", true);
             return;
         }
         let data;
