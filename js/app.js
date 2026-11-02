@@ -581,7 +581,7 @@ async function syncWithGoogleSheets() {
 
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
-            const m = text.match(/\{"ok"\s*:.*?"data"\s*:\s*\[.*?\]\}/);
+            const m = text.match(/\{\s*"ok"\s*:\s*true\s*,\s*"data"\s*:\s*\[.*\]\s*\}/s);
             if (m) {
                 try {
                     const data = JSON.parse(m[0]);
