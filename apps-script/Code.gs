@@ -176,20 +176,36 @@ function doPost(e) {
     const secret = getSecret();
     let body = {};
     if (e && e.postData && e.postData.contents) {
+      const c = e.postData.contents;
       try {
-        body = JSON.parse(e.postData.contents);
+        body = JSON.parse(c);
       } catch (ex) {
-        body = {};
-      }
-    }
-    if ((!body.secret) && e && e.parameter) {
-      body.secret = e.parameter.secret;
-      if (e.parameter.items && !body.items) {
         try {
-          body.items = JSON.parse(e.parameter.items);
-        } catch (ex) {}
+          if (c.indexOf('=') >= 0) {
+            const params = c.split('&');
+            for (var i = 0; i < params.length; i++) {
+              var p = params[i].split('=');
+              if (decodeURIComponent(p[0]) === 'data') {
+                body = JSON.parse(decodeURIComponent(p.slice(1).join('=')));
+                break;
+              }
+            }
+          }
+        } catch (ex2) {}
       }
     }
+    if (!body || !body.secret) {
+      if (e && e.parameter) {
+        if (e.parameter.secret) body.secret = e.parameter.secret;
+        if (e.parameter.data && !body.secret) {
+          try { body = JSON.parse(e.parameter.data); } catch (ex) {}
+        }
+        if (e.parameter.items && !body.items) {
+          try { body.items = JSON.parse(e.parameter.items); } catch (ex) {}
+        }
+      }
+    }
+    if (!body || typeof body !== 'object') body = {};
     const provided = body.secret !== undefined && body.secret !== null ? String(body.secret) : '';
     if (!secret || provided !== String(secret)) {
       return jsonResponse({ ok: false, error: 'unauthorized' });
