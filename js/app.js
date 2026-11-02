@@ -579,17 +579,14 @@ async function syncWithGoogleSheets() {
                     "Content-Type": "text/plain;charset=utf-8",
                 },
                 body: JSON.stringify(payload),
-                redirect: "follow",
+                mode: "cors",
             });
         } catch (err) {
             try {
-                res = await fetch("https://corsproxy.io/?" + encodeURIComponent(url), {
+                res = await fetch(url, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "text/plain;charset=utf-8",
-                    },
                     body: JSON.stringify(payload),
-                    redirect: "follow",
+                    mode: "no-cors",
                 });
             } catch (err2) {
                 throw err;
