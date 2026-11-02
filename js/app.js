@@ -582,53 +582,28 @@ async function syncWithGoogleSheets() {
 
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
-            try {
-                const idx = text.indexOf('{"ok"');
-                if (idx >= 0) {
-                    const jsonLike = text.substring(idx);
-                    try {
-                        const data = JSON.parse(jsonLike);
-                        if (data && data.ok === true && Array.isArray(data.data)) {
-                            const mergedFromServer = data.data.map((item) => ({
-                                id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
-                                amount: Number(item.amount) || 0,
-                                category: item.category || "",
-                                date: item.date || "",
-                                note: item.note || "",
-                                updatedAt: item.updatedAt || new Date().toISOString(),
-                                deleted: item.deleted === true,
-                            }));
-                            expenses = mergedFromServer;
-                            saveExpenses();
-                            render();
-                            setSyncStatus("Đồng bộ thành công", false);
-                            return;
-                        }
-                    } catch (e2) {}
-                    const end = jsonLike.indexOf('</script>');
-                    if (end > 0) {
-                        try {
-                            const data2 = JSON.parse(jsonLike.substring(0, end));
-                            if (data2 && data2.ok === true && Array.isArray(data2.data)) {
-                                const mergedFromServer = data2.data.map((item) => ({
-                                    id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
-                                    amount: Number(item.amount) || 0,
-                                    category: item.category || "",
-                                    date: item.date || "",
-                                    note: item.note || "",
-                                    updatedAt: item.updatedAt || new Date().toISOString(),
-                                    deleted: item.deleted === true,
-                                }));
-                                expenses = mergedFromServer;
-                                saveExpenses();
-                                render();
-                                setSyncStatus("Đồng bộ thành công", false);
-                                return;
-                            }
-                        } catch (e3) {}
+            const matches = text.match(/\{"ok"\s*:\s*true\s*,\s*"data"\s*:\s*\[.*?\]\}/g);
+            if (matches && matches.length > 0) {
+                try {
+                    const data = JSON.parse(matches[matches.length - 1]);
+                    if (Array.isArray(data.data)) {
+                        const mergedFromServer = data.data.map((item) => ({
+                            id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
+                            amount: Number(item.amount) || 0,
+                            category: item.category || "",
+                            date: item.date || "",
+                            note: item.note || "",
+                            updatedAt: item.updatedAt || new Date().toISOString(),
+                            deleted: item.deleted === true,
+                        }));
+                        expenses = mergedFromServer;
+                        saveExpenses();
+                        render();
+                        setSyncStatus("Đồng bộ thành công", false);
+                        return;
                     }
-                }
-            } catch (e) {}
+                } catch (e) {}
+            }
             setSyncStatus("Lỗi: Apps Script trả về trang HTML. Dùng URL /exec mới.", true);
             return;
         }
