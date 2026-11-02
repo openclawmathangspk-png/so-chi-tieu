@@ -574,7 +574,7 @@ async function syncWithGoogleSheets() {
         const bodyStr = JSON.stringify(payload);
         const res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "text/plain" },
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: bodyStr,
             redirect: "follow"
         });
