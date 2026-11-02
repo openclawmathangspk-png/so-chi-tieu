@@ -595,15 +595,15 @@ async function syncWithGoogleSheets() {
         }
 
         const text = await res.text();
-        if (!res.ok) {
-            setSyncStatus("Lỗi: proxy trả về " + res.status + " - " + text.slice(0, 60), true);
+        if (!res.ok && text.indexOf('{') !== 0) {
+            setSyncStatus("Lỗi: " + res.status, true);
             return;
         }
         let data;
         try {
             data = JSON.parse(text);
         } catch (e) {
-            setSyncStatus("Lỗi: Không đọc được phản hồi từ Apps Script. Kiểm tra lại URL/mã bí mật.", true);
+            setSyncStatus("Lỗi: Không đọc được phản hồi JSON", true);
             return;
         }
         if (!data || data.ok !== true || !Array.isArray(data.data)) {
