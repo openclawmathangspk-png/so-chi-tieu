@@ -582,10 +582,11 @@ async function syncWithGoogleSheets() {
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
             try {
-                const start = text.indexOf('{');
-                const end = text.lastIndexOf('}');
-                if (start >= 0 && end > start) {
-                    const jsonLike = text.substring(start, end + 1);
+                const idx = text.indexOf('{"ok"');
+                if (idx >= 0) {
+                    const tail = text.substring(idx);
+                    const end = tail.indexOf('}</body>');
+                    const jsonLike = end >= 0 ? tail.substring(0, end + 1) : tail;
                     const data = JSON.parse(jsonLike);
                     if (data && data.ok === true && Array.isArray(data.data)) {
                         const mergedFromServer = data.data.map((item) => ({
@@ -605,7 +606,7 @@ async function syncWithGoogleSheets() {
                     }
                 }
             } catch (e) {}
-            setSyncStatus("Lỗi: Apps Script trả về trang HTML. Dùng URL /exec mới sau khi triển khai lại.", true);
+            setSyncStatus("Lỗi: Apps Script trả về trang HTML. Dùng URL /exec mới.", true);
             return;
         }
         let data;
