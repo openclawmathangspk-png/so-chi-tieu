@@ -595,10 +595,12 @@ async function syncWithGoogleSheets() {
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
             try {
-                const mAll = text.match(/\{"ok"\s*:\s*(true|false)[\s\S]*?"data"\s*:\s*\[[\s\S]*?\]\}/);
-                if (mAll && mAll[1] === 'true') {
-                    const data = JSON.parse(mAll[0]);
-                    if (Array.isArray(data.data)) {
+                const start = text.indexOf('{');
+                const end = text.lastIndexOf('}');
+                if (start >= 0 && end > start) {
+                    const jsonLike = text.substring(start, end + 1);
+                    const data = JSON.parse(jsonLike);
+                    if (data && data.ok === true && Array.isArray(data.data)) {
                         const mergedFromServer = data.data.map((item) => ({
                             id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
                             amount: Number(item.amount) || 0,
