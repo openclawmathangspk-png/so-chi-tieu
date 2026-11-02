@@ -174,23 +174,27 @@ function doGet(e) {
 function doPost(e) {
   try {
     const secret = getSecret();
-    let body = parseJsonBody(e);
-    if ((!body || !body.secret) && e && e.parameter) {
-      body = { secret: e.parameter.secret, items: body.items || e.parameter.items };
+    let body = {};
+    if (e && e.postData && e.postData.contents) {
+      try {
+        body = JSON.parse(e.postData.contents);
+      } catch (ex) {
+        body = {};
+      }
     }
-    if (!body || typeof body !== 'object') {
-      body = {};
+    if ((!body.secret) && e && e.parameter) {
+      body.secret = e.parameter.secret;
+      if (e.parameter.items && !body.items) {
+        try {
+          body.items = JSON.parse(e.parameter.items);
+        } catch (ex) {}
+      }
     }
     const provided = body.secret !== undefined && body.secret !== null ? String(body.secret) : '';
     if (!secret || provided !== String(secret)) {
       return jsonResponse({ ok: false, error: 'unauthorized' });
     }
-    let incoming = Array.isArray(body.items) ? body.items : [];
-    if (!incoming.length && e && e.parameter && e.parameter.items) {
-      try {
-        incoming = JSON.parse(e.parameter.items);
-      } catch (ex) {}
-    }
+    const incoming = Array.isArray(body.items) ? body.items : [];
     const existing = readAllFromSheet();
     const merged = mergeItems(existing, incoming);
     writeAllToSheet(merged);
