@@ -581,31 +581,28 @@ async function syncWithGoogleSheets() {
 
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
-            const idx = text.indexOf('{"ok"');
-            if (idx >= 0) {
-                const sub = text.substring(idx);
-                const m = sub.match(/\{"ok"\s*:\s*true\s*,\s*"data"\s*:\s*\[[^\[\]]*(?:\[[^\[\]]*\][^\[\]]*)*\]\}/);
-                if (m) {
-                    try {
-                        const data = JSON.parse(m[0]);
-                        if (Array.isArray(data.data)) {
-                            const mergedFromServer = data.data.map((item) => ({
-                                id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
-                                amount: Number(item.amount) || 0,
-                                category: item.category || "",
-                                date: item.date || "",
-                                note: item.note || "",
-                                updatedAt: item.updatedAt || new Date().toISOString(),
-                                deleted: item.deleted === true,
-                            }));
-                            expenses = mergedFromServer;
-                            saveExpenses();
-                            render();
-                            setSyncStatus("Đồng bộ thành công", false);
-                            return;
-                        }
-                    } catch (e) {}
-                }
+            const start = text.indexOf('{');
+            const end = text.lastIndexOf('}');
+            if (start >= 0 && end > start) {
+                try {
+                    const data = JSON.parse(text.substring(start, end + 1));
+                    if (data && data.ok === true && Array.isArray(data.data)) {
+                        const mergedFromServer = data.data.map((item) => ({
+                            id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
+                            amount: Number(item.amount) || 0,
+                            category: item.category || "",
+                            date: item.date || "",
+                            note: item.note || "",
+                            updatedAt: item.updatedAt || new Date().toISOString(),
+                            deleted: item.deleted === true,
+                        }));
+                        expenses = mergedFromServer;
+                        saveExpenses();
+                        render();
+                        setSyncStatus("Đồng bộ thành công", false);
+                        return;
+                    }
+                } catch (e) {}
             }
             setSyncStatus("Lỗi: Apps Script trả về trang HTML. Dùng URL /exec mới.", true);
             return;
