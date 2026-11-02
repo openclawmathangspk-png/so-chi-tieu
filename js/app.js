@@ -571,20 +571,44 @@ async function syncWithGoogleSheets() {
     };
 
     try {
-        const res = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "text/plain;charset=utf-8",
-            },
-            body: JSON.stringify(payload),
-        });
+        let res;
+        try {
+            res = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                },
+                body: JSON.stringify(payload),
+                redirect: "follow",
+            });
+        } catch (err) {
+            try {
+                res = await fetch("https://corsproxy.io/?" + encodeURIComponent(url), {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8",
+                    },
+                    body: JSON.stringify(payload),
+                    redirect: "follow",
+                });
+            } catch (err2) {
+                throw err;
+            }
+        }
 
         if (!res.ok) {
             setSyncStatus("Lỗi: không thể kết nối đến Apps Script (" + res.status + ")", true);
             return;
         }
 
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            setSyncStatus("Lỗi: phản hồi không phải JSON hợp lệ", true);
+            return;
+        }
         if (!data || data.ok !== true || !Array.isArray(data.data)) {
             setSyncStatus("Lỗi: phản hồi không hợp lệ", true);
             return;
