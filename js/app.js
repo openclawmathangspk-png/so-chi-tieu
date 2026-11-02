@@ -589,15 +589,15 @@ async function syncWithGoogleSheets() {
         }
 
         const text = await res.text();
-        if (!res.ok && text.indexOf('{') !== 0) {
-            setSyncStatus("Lỗi: " + res.status, true);
+        if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
+            setSyncStatus("Lỗi: Apps Script trả về trang HTML. Hãy triển khai lại Web App: Thực thi như 'Tôi', Ai có quyền truy cập 'Bất kỳ ai kể cả người dùng ẩn danh', và dùng URL /exec mới.", true);
             return;
         }
         let data;
         try {
             data = JSON.parse(text);
         } catch (e) {
-            setSyncStatus("Lỗi: Không đọc được JSON. Thử lại sau khi triển khai lại Web App.", true);
+            setSyncStatus("Lỗi: Phản hồi không hợp lệ", true);
             return;
         }
         if (!data || data.ok !== true || !Array.isArray(data.data)) {
