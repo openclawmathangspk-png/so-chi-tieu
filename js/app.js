@@ -581,11 +581,13 @@ async function syncWithGoogleSheets() {
 
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
-            const start = text.indexOf('{');
-            const end = text.lastIndexOf('}');
-            if (start >= 0 && end > start) {
+            const idx = text.indexOf('{"ok"');
+            if (idx >= 0) {
+                let s = text.substring(idx);
+                const cut = s.indexOf('</');
+                if (cut > 0) s = s.substring(0, cut);
                 try {
-                    const data = JSON.parse(text.substring(start, end + 1));
+                    const data = JSON.parse(s);
                     if (data && data.ok === true && Array.isArray(data.data)) {
                         const mergedFromServer = data.data.map((item) => ({
                             id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
@@ -604,7 +606,7 @@ async function syncWithGoogleSheets() {
                     }
                 } catch (e) {}
             }
-            setSyncStatus("Lỗi: Apps Script trả về trang HTML. Dùng URL /exec mới.", true);
+            setSyncStatus("Lỗi: Apps Script trả về trang HTML", true);
             return;
         }
         let data;
