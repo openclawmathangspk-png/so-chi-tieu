@@ -581,11 +581,11 @@ async function syncWithGoogleSheets() {
 
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
-            const m = text.match(/\{"ok"\s*:.*"data"\s*:\s*\[.*\]\}/);
+            const m = text.match(/\{"ok"\s*:.*?"data"\s*:\s*\[.*?\]\}/);
             if (m) {
                 try {
                     const data = JSON.parse(m[0]);
-                    if (data.ok === true && Array.isArray(data.data)) {
+                    if (data && data.ok === true && Array.isArray(data.data)) {
                         const mergedFromServer = data.data.map((item) => ({
                             id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
                             amount: Number(item.amount) || 0,
