@@ -584,7 +584,7 @@ async function syncWithGoogleSheets() {
         try {
             data = JSON.parse(text);
         } catch (e) {
-            setSyncStatus("Lỗi: Failed to fetch (CORS). Hãy dùng Extensions > Apps Script: triển khai Web App với 'Ai có quyền truy cập: Bất kỳ ai kể cả người dùng ẩn danh' và đảm bảo URL đúng.", true);
+            setSyncStatus("Lỗi: Failed to fetch. Cần triển khai Web App Apps Script với 'Thực thi như: Tôi' và 'Ai có quyền truy cập: Bất kỳ ai kể cả người dùng ẩn danh'. Nếu vẫn lỗi, thử mở URL bằng trình duyệt một lần hoặc dùng proxy.", true);
             return;
         }
         if (!data || data.ok !== true || !Array.isArray(data.data)) {
