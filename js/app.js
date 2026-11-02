@@ -572,11 +572,21 @@ async function syncWithGoogleSheets() {
 
     try {
         const bodyStr = JSON.stringify(payload);
-        const res = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: bodyStr,
-        });
+        let res;
+        try {
+            res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: bodyStr,
+                redirect: "follow"
+            });
+        } catch (e) {
+            res = await fetch(url, {
+                method: "POST",
+                body: bodyStr,
+                redirect: "follow"
+            });
+        }
 
         const text = await res.text();
         if (!res.ok && text.indexOf('{') !== 0) {
