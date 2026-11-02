@@ -580,6 +580,10 @@ async function syncWithGoogleSheets() {
             body: JSON.stringify(payload),
         });
 
+        if (!res.ok) {
+            setSyncStatus("Lỗi: proxy trả về " + res.status, true);
+            return;
+        }
         const text = await res.text();
         let data;
         try {
