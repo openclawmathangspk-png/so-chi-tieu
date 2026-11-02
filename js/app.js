@@ -581,11 +581,29 @@ async function syncWithGoogleSheets() {
 
         const text = await res.text();
         if (text.indexOf('<!DOCTYPE') === 0 || text.indexOf('<html') === 0) {
-            const m = text.match(/\{\s*"ok"\s*:\s*true\s*,\s*"data"\s*:\s*\[.*\]\s*\}/s);
-            if (m) {
-                try {
-                    const data = JSON.parse(m[0]);
-                    if (data && data.ok === true && Array.isArray(data.data)) {
+            const idx = text.indexOf('{"ok"');
+            if (idx >= 0) {
+                const snippet = text.substring(idx);
+                let brace = 0;
+                let endIdx = -1;
+                let inStr = false;
+                let esc = false;
+                for (let i = 0; i < snippet.length; i++) {
+                    const ch = snippet[i];
+                    if (esc) { esc = false; continue; }
+                    if (ch === '\\') { esc = true; continue; }
+                    if (ch === '"') { inStr = !inStr; continue; }
+                    if (inStr) continue;
+                    if (ch === '{') brace++;
+                    if (ch === '}') {
+                        brace--;
+                        if (brace === 0) { endIdx = i + 1; break; }
+                    }
+                }
+                if (endIdx > 0) {
+                    try {
+                        const data = JSON.parse(snippet.substring(0, endIdx));
+                        if (data && data.ok === true && Array.isArray(data.data)) {
                         const mergedFromServer = data.data.map((item) => ({
                             id: item.id !== undefined && item.id !== null ? String(item.id) : Date.now().toString(),
                             amount: Number(item.amount) || 0,
@@ -600,8 +618,9 @@ async function syncWithGoogleSheets() {
                         render();
                         setSyncStatus("Đồng bộ thành công", false);
                         return;
-                    }
-                } catch (e) {}
+                        }
+                    } catch (e) {}
+                }
             }
             setSyncStatus("Lỗi: Apps Script trả về HTML. Kiểm tra lại URL /exec và quyền triển khai.", true);
             return;
